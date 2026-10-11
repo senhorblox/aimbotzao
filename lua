@@ -2229,11 +2229,63 @@ LanguageInfo.BackgroundTransparency = 1
 LanguageInfo.Position = UDim2.fromOffset(20, 120)
 LanguageInfo.Size = UDim2.new(1, -40, 0, 24)
 LanguageInfo.Font = Enum.Font.Gotham
-LanguageInfo.Text = CurrentLanguage == "pt" and "Idioma: Português (detectado automaticamente)" or "Language: English (auto-detected)"
+LanguageInfo.Text = CurrentLanguage == "pt" and "Idioma atual: Português" or "Current language: English"
 LanguageInfo.TextColor3 = Color3.fromRGB(175, 175, 185)
 LanguageInfo.TextSize = 12
 LanguageInfo.TextXAlignment = Enum.TextXAlignment.Left
 LanguageInfo.Parent = SettingsPage
+
+-- Manually switch languages at any time; automatic detection is only the initial default.
+local LanguageButton = Instance.new("TextButton")
+LanguageButton.Name = "LanguageButton"
+LanguageButton.Position = UDim2.fromOffset(20, 151)
+LanguageButton.Size = UDim2.new(1, -40, 0, 34)
+LanguageButton.BackgroundColor3 = Color3.fromRGB(45, 45, 56)
+LanguageButton.BorderSizePixel = 0
+LanguageButton.Font = Enum.Font.GothamMedium
+LanguageButton.TextSize = 13
+LanguageButton.TextColor3 = Color3.fromRGB(240, 240, 245)
+LanguageButton.Parent = SettingsPage
+Instance.new("UICorner", LanguageButton).CornerRadius = UDim.new(0, 6)
+
+local function UpdateLanguageButton()
+    LanguageButton.Text = CurrentLanguage == "pt" and "Idioma: Português  |  Switch to English" or "Language: English  |  Mudar para Português"
+    LanguageInfo.Text = CurrentLanguage == "pt" and "Idioma atual: Português" or "Current language: English"
+end
+
+local function RefreshLanguage()
+    -- Translate current UI text back to its English key, then apply the selected language.
+    local reverse = {}
+    for english, entry in pairs(Translations) do
+        if entry.pt and entry.pt ~= english then
+            table.insert(reverse, {pt = entry.pt, en = english})
+        end
+    end
+    table.sort(reverse, function(a, b) return #a.pt > #b.pt end)
+
+    for _, object in ipairs(ScreenGui:GetDescendants()) do
+        if object:IsA("TextLabel") or object:IsA("TextButton") or object:IsA("TextBox") then
+            local value = object.Text
+            for _, pair in ipairs(reverse) do
+                local startAt = 1
+                while true do
+                    local first, last = string.find(value, pair.pt, startAt, true)
+                    if not first then break end
+                    value = string.sub(value, 1, first - 1) .. pair.en .. string.sub(value, last + 1)
+                    startAt = first + #pair.en
+                end
+            end
+            object.Text = T(value)
+        end
+    end
+    UpdateLanguageButton()
+end
+
+LanguageButton.MouseButton1Click:Connect(function()
+    CurrentLanguage = CurrentLanguage == "pt" and "en" or "pt"
+    RefreshLanguage()
+end)
+UpdateLanguageButton()
 
 CreateKeybind(
 	SettingsPage,
