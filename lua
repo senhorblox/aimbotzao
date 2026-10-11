@@ -63,6 +63,7 @@ local Settings = {
 		SilentAim = false,
 
 		FOV = 200,
+		ShowFOV = false,
 
 		MaxDistance = 1000,
 
@@ -689,6 +690,24 @@ ESPOverlay.BackgroundTransparency = 1
 ESPOverlay.Size = UDim2.fromScale(1, 1)
 ESPOverlay.Position = UDim2.fromScale(0, 0)
 ESPOverlay.Parent = ScreenGui
+
+-- Visual circle showing the current aimbot FOV around the cursor.
+local FOVCircle = Instance.new("Frame")
+FOVCircle.Name = "FOVCircle"
+FOVCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+FOVCircle.BackgroundTransparency = 1
+FOVCircle.BorderSizePixel = 0
+FOVCircle.Visible = false
+FOVCircle.ZIndex = 20
+FOVCircle.Parent = ESPOverlay
+local FOVCircleCorner = Instance.new("UICorner")
+FOVCircleCorner.CornerRadius = UDim.new(1, 0)
+FOVCircleCorner.Parent = FOVCircle
+local FOVCircleStroke = Instance.new("UIStroke")
+FOVCircleStroke.Thickness = 1.5
+FOVCircleStroke.Color = Color3.fromRGB(255, 255, 255)
+FOVCircleStroke.Transparency = 0.1
+FOVCircleStroke.Parent = FOVCircle
 
 local ESPVisuals = {}
 
@@ -1829,6 +1848,17 @@ CreateSelector(
 	308
 )
 
+CreateToggle(
+	AimPage,
+	"See FOV",
+	Settings.Aimbot.ShowFOV,
+	function(value)
+		Settings.Aimbot.ShowFOV = value
+		FOVCircle.Visible = value
+	end,
+	351
+)
+
 --==================================================
 -- ESP PAGE
 --==================================================
@@ -2563,6 +2593,15 @@ RunService.RenderStepped:Connect(
 					255,
 					140
 				)
+		end
+
+		-- Keep the FOV circle centered on the cursor and sized to the selected FOV.
+		FOVCircle.Visible = Settings.Aimbot.ShowFOV
+		if Settings.Aimbot.ShowFOV then
+			local mousePosition = UserInputService:GetMouseLocation()
+			local diameter = math.max(0, Settings.Aimbot.FOV * 2)
+			FOVCircle.Position = UDim2.fromOffset(mousePosition.X, mousePosition.Y)
+			FOVCircle.Size = UDim2.fromOffset(diameter, diameter)
 		end
 
 		UpdateESPVisuals()
