@@ -74,6 +74,7 @@ local Settings = {
 
 		ShowOutline = true,
 		ShowNames = true,
+		ShowHealth = false,
 		ShowTracer = false,
 		ShowBox = false,
 
@@ -427,7 +428,7 @@ local function CreateESP(player)
 	billboard.Size =
 		UDim2.fromOffset(
 			200,
-			40
+			42
 		)
 
 	billboard.StudsOffset =
@@ -449,11 +450,9 @@ local function CreateESP(player)
 	nameLabel.BackgroundTransparency =
 		1
 
-	nameLabel.Size =
-		UDim2.fromScale(
-			1,
-			1
-		)
+	nameLabel.Position = UDim2.fromOffset(0, 0)
+	nameLabel.Size = UDim2.new(1, 0, 0, 21)
+	nameLabel.Visible = Settings.ESP.ShowNames
 
 	nameLabel.Font =
 		Enum.Font.GothamBold
@@ -472,6 +471,19 @@ local function CreateESP(player)
 
 	nameLabel.TextColor3 = GetESPColor(player)
 
+	local healthLabel = Instance.new("TextLabel")
+	healthLabel.Name = "HealthNumber"
+	healthLabel.BackgroundTransparency = 1
+	healthLabel.Position = UDim2.fromOffset(0, 20)
+	healthLabel.Size = UDim2.new(1, 0, 0, 20)
+	healthLabel.Font = Enum.Font.GothamBold
+	healthLabel.TextSize = 13
+	healthLabel.TextStrokeTransparency = 0
+	healthLabel.Text = ""
+	healthLabel.Visible = Settings.ESP.ShowHealth
+	healthLabel.TextColor3 = Color3.fromRGB(100, 255, 120)
+	healthLabel.Parent = billboard
+
 	local visuals = MakeESPVisuals(player)
 
 	ESPObjects[player] = {
@@ -483,6 +495,7 @@ local function CreateESP(player)
 		Billboard = billboard,
 
 		Name = nameLabel,
+		Health = healthLabel,
 	}
 end
 
@@ -581,7 +594,17 @@ local function UpdateESP(player)
 		Settings.ESP.ShowOutline
 
 	data.Billboard.Enabled =
-		Settings.ESP.ShowNames
+		(Settings.ESP.ShowNames or Settings.ESP.ShowHealth)
+	data.Name.Visible = Settings.ESP.ShowNames
+	if data.Health then
+		data.Health.Visible = Settings.ESP.ShowHealth
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			data.Health.Text = tostring(math.max(0, math.ceil(humanoid.Health)))
+			local ratio = humanoid.MaxHealth > 0 and math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1) or 0
+			data.Health.TextColor3 = Color3.fromRGB(255 * (1 - ratio), 255 * ratio, 80)
+		end
+	end
 
 	--==================================================
 	-- COLORS
@@ -1914,15 +1937,29 @@ CreateToggle(
 		) do
 
 			if data.Billboard then
-
-				data.Billboard.Enabled =
-					value
-
+				data.Billboard.Enabled = value or Settings.ESP.ShowHealth
 			end
+			if data.Name then data.Name.Visible = value end
 		end
 
 	end,
 	136
+)
+
+CreateToggle(
+	ESPPage,
+	"Health Numbers",
+	Settings.ESP.ShowHealth,
+	function(value)
+		Settings.ESP.ShowHealth = value
+		for _, data in pairs(ESPObjects) do
+			if data.Billboard then
+				data.Billboard.Enabled = Settings.ESP.ShowNames or value
+			end
+			if data.Health then data.Health.Visible = value end
+		end
+	end,
+	179
 )
 
 CreateToggle(
@@ -1932,7 +1969,7 @@ CreateToggle(
 	function(value)
 		Settings.ESP.ShowTracer = value
 	end,
-	179
+	222
 )
 
 CreateToggle(
@@ -1942,7 +1979,7 @@ CreateToggle(
 	function(value)
 		Settings.ESP.ShowBox = value
 	end,
-	222
+	265
 )
 
 CreateToggle(
@@ -1957,7 +1994,7 @@ CreateToggle(
 		UpdateAllESP()
 
 	end,
-	265
+	308
 )
 
 --==================================================
@@ -1966,7 +2003,7 @@ CreateToggle(
 
 local ColorHeader = Instance.new("TextLabel")
 ColorHeader.BackgroundTransparency = 1
-ColorHeader.Position = UDim2.fromOffset(20, 307)
+ColorHeader.Position = UDim2.fromOffset(20, 350)
 ColorHeader.Size = UDim2.new(1, -40, 0, 24)
 ColorHeader.Font = Enum.Font.GothamBold
 ColorHeader.Text = "ESP COLORS  •  HEX"
@@ -2043,10 +2080,10 @@ local function MakeColorInput(labelText, y, initialColor, applyCallback)
 	end)
 end
 
-MakeColorInput("Teammates", 337, Settings.ESP.TeammateColor, function(color)
+MakeColorInput("Teammates", 380, Settings.ESP.TeammateColor, function(color)
 	Settings.ESP.TeammateColor = color
 end)
-MakeColorInput("Enemies", 374, Settings.ESP.EnemyColor, function(color)
+MakeColorInput("Enemies", 417, Settings.ESP.EnemyColor, function(color)
 	Settings.ESP.EnemyColor = color
 end)
 
@@ -2393,6 +2430,20 @@ local function UpdateESPVisuals()
 					and rootPos.Z > 0 and headPos.Z > 0 and feetPos.Z > 0
 
 				local color = GetESPColor(player)
+				if data.Name then
+					data.Name.TextColor3 = color
+					data.Name.Visible = Settings.ESP.ShowNames
+				end
+				if data.Health then
+					local humanoid = character:FindFirstChildOfClass("Humanoid")
+					data.Health.Visible = Settings.ESP.ShowHealth
+					if humanoid then
+						data.Health.Text = tostring(math.max(0, math.ceil(humanoid.Health)))
+						local ratio = humanoid.MaxHealth > 0 and math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1) or 0
+						data.Health.TextColor3 = Color3.fromRGB(255 * (1 - ratio), 255 * ratio, 80)
+					end
+				end
+				data.Billboard.Enabled = Settings.ESP.ShowNames or Settings.ESP.ShowHealth
 
 				local tracer = visuals.Tracer
 				tracer.Visible = visible and Settings.ESP.ShowTracer
