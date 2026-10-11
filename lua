@@ -36,6 +36,65 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local LocalizationService = game:GetService("LocalizationService")
+
+--==================================================
+-- AUTOMATIC LANGUAGE DETECTION (Portuguese / English)
+--==================================================
+
+local function DetectLanguage()
+	local locale = string.lower(LocalizationService.RobloxLocaleId or "en-us")
+	if string.sub(locale, 1, 2) == "pt" then
+		return "pt"
+	end
+	return "en"
+end
+
+local CurrentLanguage = DetectLanguage()
+
+local Translations = {
+	["Aimbot"] = { pt = "Aimbot" },
+	["Head"] = { pt = "Cabeça" },
+	["Torso"] = { pt = "Tronco" },
+	["ESP"] = { pt = "ESP" },
+	["Settings"] = { pt = "Configurações" },
+	["READY"] = { pt = "PRONTO" },
+	["AIMING"] = { pt = "MIRANDO" },
+	["NO TARGET"] = { pt = "SEM ALVO" },
+	["ON"] = { pt = "LIGADO" },
+	["OFF"] = { pt = "DESLIGADO" },
+	["Team Check"] = { pt = "Verificar equipe" },
+	["Closest to You"] = { pt = "Mais próximo de você" },
+	["Wall Check"] = { pt = "Verificar paredes" },
+	["Silent Aim"] = { pt = "Mira silenciosa" },
+	["Target"] = { pt = "Alvo" },
+	["FOV"] = { pt = "Campo de visão" },
+	["See FOV"] = { pt = "Mostrar FOV" },
+	["Player Outline"] = { pt = "Contorno do jogador" },
+	["Player Names"] = { pt = "Nomes dos jogadores" },
+	["Health Numbers"] = { pt = "Números de vida" },
+	["Tracer"] = { pt = "Rastreador" },
+	["Box"] = { pt = "Caixa" },
+	["ESP COLORS  •  HEX"] = { pt = "CORES DO ESP  •  HEX" },
+	["Teammates"] = { pt = "Aliados" },
+	["Enemies"] = { pt = "Inimigos" },
+	["Apply"] = { pt = "Aplicar" },
+	["Keybinds"] = { pt = "Teclas de atalho" },
+	["Aim Key"] = { pt = "Tecla de mira" },
+	["UI Toggle"] = { pt = "Mostrar/ocultar interface" },
+	["Click a keybind and press a key."] = { pt = "Clique em uma tecla de atalho e pressione outra tecla." },
+	["The UI Toggle key completely hides the menu."] = { pt = "A tecla da interface oculta o menu completamente." },
+	["Press the same key again to bring it back."] = { pt = "Pressione a mesma tecla novamente para mostrá-lo." },
+	["PRESS KEY"] = { pt = "PRESSIONE UMA TECLA" },
+}
+
+local function T(text)
+	local entry = Translations[text]
+	if entry and CurrentLanguage == "pt" and entry.pt then
+		return entry.pt
+	end
+	return text
+end
 
 --==================================================
 -- PLAYER
@@ -866,7 +925,7 @@ Title.Font =
 	Enum.Font.GothamBold
 
 Title.Text =
-	"AIM  •  ESP"
+	T("AIM  •  ESP")
 
 Title.TextColor3 =
 	Color3.fromRGB(
@@ -920,7 +979,7 @@ Status.Font =
 	Enum.Font.Gotham
 
 Status.Text =
-	"READY"
+	T("READY")
 
 Status.TextColor3 =
 	Color3.fromRGB(
@@ -1211,7 +1270,7 @@ local function CreateTab(text, page)
 		Enum.Font.GothamMedium
 
 	button.Text =
-		text
+		T(text)
 
 	button.TextColor3 =
 		Color3.fromRGB(
@@ -1375,12 +1434,12 @@ local function CreateToggle(
 
 		button.Text =
 			"  "
-			.. text
+			.. T(text)
 			.. "     "
 			.. (
 				value
-				and "ON"
-				or "OFF"
+				and T("ON")
+				or T("OFF")
 			)
 
 		button.TextColor3 =
@@ -1490,11 +1549,11 @@ local function CreateSelector(
 
 		button.Text =
 			"  "
-			.. text
+			.. T(text)
 			.. ": "
-			.. tostring(
+			.. T(tostring(
 				values[index]
-			)
+			))
 
 	end
 
@@ -1609,7 +1668,7 @@ local function CreateKeybind(
 
 		button.Text =
 			"  "
-			.. text
+			.. T(text)
 			.. ": ["
 			.. KeyName(currentKey)
 			.. "]"
@@ -1632,8 +1691,8 @@ local function CreateKeybind(
 
 		button.Text =
 			"  "
-			.. text
-			.. ": [PRESS KEY]"
+			.. T(text)
+			.. ": [" .. T("PRESS KEY") .. "]"
 
 		button.TextColor3 =
 			Color3.fromRGB(
@@ -1736,7 +1795,7 @@ AimHeader.Font =
 	Enum.Font.GothamBold
 
 AimHeader.Text =
-	"Aimbot"
+	T("Aimbot")
 
 AimHeader.TextColor3 =
 	Color3.fromRGB(
@@ -1889,7 +1948,7 @@ ESPHeader.Font =
 	Enum.Font.GothamBold
 
 ESPHeader.Text =
-	"ESP"
+	T("ESP")
 
 ESPHeader.TextColor3 =
 	Color3.fromRGB(
@@ -2038,7 +2097,7 @@ ColorHeader.BackgroundTransparency = 1
 ColorHeader.Position = UDim2.fromOffset(20, 350)
 ColorHeader.Size = UDim2.new(1, -40, 0, 24)
 ColorHeader.Font = Enum.Font.GothamBold
-ColorHeader.Text = "ESP COLORS  •  HEX"
+ColorHeader.Text = T("ESP COLORS  •  HEX")
 ColorHeader.TextColor3 = Color3.fromRGB(235, 235, 245)
 ColorHeader.TextSize = 12
 ColorHeader.TextXAlignment = Enum.TextXAlignment.Left
@@ -2054,7 +2113,7 @@ local function MakeColorInput(labelText, y, initialColor, applyCallback)
 	label.Position = UDim2.fromOffset(20, y)
 	label.Size = UDim2.fromOffset(92, 30)
 	label.Font = Enum.Font.GothamMedium
-	label.Text = labelText
+	label.Text = T(labelText)
 	label.TextColor3 = Color3.fromRGB(195, 195, 205)
 	label.TextSize = 11
 	label.TextXAlignment = Enum.TextXAlignment.Left
@@ -2082,7 +2141,7 @@ local function MakeColorInput(labelText, y, initialColor, applyCallback)
 	apply.BackgroundColor3 = Color3.fromRGB(55, 55, 68)
 	apply.BorderSizePixel = 0
 	apply.Font = Enum.Font.GothamMedium
-	apply.Text = "Apply"
+	apply.Text = T("Apply")
 	apply.TextColor3 = Color3.fromRGB(240, 240, 245)
 	apply.TextSize = 11
 	apply.Parent = ESPPage
@@ -2147,7 +2206,7 @@ SettingsHeader.Font =
 	Enum.Font.GothamBold
 
 SettingsHeader.Text =
-	"Keybinds"
+	T("Keybinds")
 
 SettingsHeader.TextColor3 =
 	Color3.fromRGB(
@@ -2164,6 +2223,17 @@ SettingsHeader.TextXAlignment =
 
 SettingsHeader.Parent =
 	SettingsPage
+
+local LanguageInfo = Instance.new("TextLabel")
+LanguageInfo.BackgroundTransparency = 1
+LanguageInfo.Position = UDim2.fromOffset(20, 120)
+LanguageInfo.Size = UDim2.new(1, -40, 0, 24)
+LanguageInfo.Font = Enum.Font.Gotham
+LanguageInfo.Text = CurrentLanguage == "pt" and "Idioma: Português (detectado automaticamente)" or "Language: English (auto-detected)"
+LanguageInfo.TextColor3 = Color3.fromRGB(175, 175, 185)
+LanguageInfo.TextSize = 12
+LanguageInfo.TextXAlignment = Enum.TextXAlignment.Left
+LanguageInfo.Parent = SettingsPage
 
 CreateKeybind(
 	SettingsPage,
@@ -2218,9 +2288,9 @@ Info.Font =
 	Enum.Font.Gotham
 
 Info.Text =
-	"Click a keybind and press a key.\n\n"
-	.. "The UI Toggle key completely hides the menu.\n"
-	.. "Press the same key again to bring it back."
+	T("Click a keybind and press a key.") .. "\n\n"
+	.. T("The UI Toggle key completely hides the menu.") .. "\n"
+	.. T("Press the same key again to bring it back.")
 
 Info.TextColor3 =
 	Color3.fromRGB(
@@ -2568,7 +2638,7 @@ RunService.RenderStepped:Connect(
 				end
 
 				Status.Text =
-					"AIMING"
+					T("AIMING")
 
 				Status.TextColor3 =
 					Color3.fromRGB(
@@ -2581,7 +2651,7 @@ RunService.RenderStepped:Connect(
 
 				LocalPlayer:SetAttribute("SilentAimTargetUserId", nil)
 				Status.Text =
-					"NO TARGET"
+					T("NO TARGET")
 
 				Status.TextColor3 =
 					Color3.fromRGB(
@@ -2595,7 +2665,7 @@ RunService.RenderStepped:Connect(
 
 			LocalPlayer:SetAttribute("SilentAimTargetUserId", nil)
 			Status.Text =
-				"READY"
+				T("READY")
 
 			Status.TextColor3 =
 				Color3.fromRGB(
@@ -2643,7 +2713,7 @@ RunService.RenderStepped:Connect(
 --==================================================
 
 Status.Text =
-	"READY"
+	T("READY")
 
 Status.TextColor3 =
 	Color3.fromRGB(
