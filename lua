@@ -57,6 +57,11 @@ local Settings = {
 
 		TargetPart = "Head",
 
+		ClosestToYou = false,
+
+		WallCheck = false,
+		SilentAim = false,
+
 		FOV = 200,
 
 		MaxDistance = 1000,
@@ -69,8 +74,12 @@ local Settings = {
 
 		ShowOutline = true,
 		ShowNames = true,
+		ShowTracer = false,
+		ShowBox = false,
 
 		TeamCheck = false,
+		TeammateColor = Color3.fromRGB(70, 160, 255),
+		EnemyColor = Color3.fromRGB(255, 70, 70),
 	},
 
 	UI = {
@@ -144,6 +153,33 @@ local function IsSameTeam(player)
 	return player.Team == LocalPlayer.Team
 end
 
+local function GetESPColor(player)
+	return IsSameTeam(player) and Settings.ESP.TeammateColor or Settings.ESP.EnemyColor
+end
+
+--==================================================
+-- WALL CHECK
+--==================================================
+
+local function HasLineOfSight(character, targetPart)
+	local camera = workspace.CurrentCamera
+	if not camera or not character or not targetPart then
+		return false
+	end
+
+	local origin = camera.CFrame.Position
+	local direction = targetPart.Position - origin
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = {
+		LocalPlayer.Character,
+		camera,
+	}
+
+	local result = workspace:Raycast(origin, direction, params)
+	return result == nil or result.Instance:IsDescendantOf(character)
+end
+
 --==================================================
 -- AIMBOT TARGET CHECK
 --==================================================
@@ -174,7 +210,15 @@ local function IsValidTarget(player)
 	local targetPart =
 		GetTargetPart(character)
 
-	return targetPart ~= nil
+	if not targetPart then
+		return false
+	end
+
+	if Settings.Aimbot.WallCheck and not HasLineOfSight(character, targetPart) then
+		return false
+	end
+
+	return true
 end
 
 --==================================================
@@ -182,59 +226,61 @@ end
 --==================================================
 
 local function GetNearestPlayerToMouse()
-
 	local camera = workspace.CurrentCamera
-
 	if not camera then
 		return nil
 	end
 
-	local mousePosition =
-		UserInputService:GetMouseLocation()
+	local mousePosition = UserInputService:GetMouseLocation()
+	local localCharacter = LocalPlayer.Character
+	local localRoot = localCharacter and (
+		localCharacter:FindFirstChild("HumanoidRootPart")
+		or localCharacter:FindFirstChild("UpperTorso")
+		or localCharacter:FindFirstChild("Torso")
+	)
 
 	local closestPlayer = nil
-	local closestDistance = Settings.Aimbot.FOV
+	local closestDistance = Settings.Aimbot.ClosestToYou
+		and math.huge
+		or Settings.Aimbot.FOV
 
 	for _, player in ipairs(Players:GetPlayers()) do
-
 		if IsValidTarget(player) then
-
 			local character = player.Character
-
-			local targetPart =
-				GetTargetPart(character)
+			local targetPart = GetTargetPart(character)
 
 			if targetPart then
+				local worldDistance = (
+					camera.CFrame.Position - targetPart.Position
+				).Magnitude
 
-				local screenPosition, visible =
-					camera:WorldToViewportPoint(
-						targetPart.Position
-					)
+				if worldDistance <= Settings.Aimbot.MaxDistance then
+					local qualifies = false
+					local distanceToCompare
 
-				if visible and screenPosition.Z > 0 then
-
-					local distance = (
-						Vector2.new(
-							screenPosition.X,
-							screenPosition.Y
-						)
-						- mousePosition
-					).Magnitude
-
-					if distance < closestDistance then
-
-						local worldDistance =
-							(
-								camera.CFrame.Position
-								- targetPart.Position
+					if Settings.Aimbot.ClosestToYou then
+						if localRoot then
+							distanceToCompare = (
+								localRoot.Position - targetPart.Position
 							).Magnitude
-
-						if worldDistance <= Settings.Aimbot.MaxDistance then
-
-							closestDistance = distance
-							closestPlayer = player
-
+							qualifies = distanceToCompare < closestDistance
 						end
+					else
+						local screenPosition, visible =
+							camera:WorldToViewportPoint(targetPart.Position)
+
+						if visible and screenPosition.Z > 0 then
+							distanceToCompare = (
+								Vector2.new(screenPosition.X, screenPosition.Y)
+								- mousePosition
+							).Magnitude
+							qualifies = distanceToCompare < closestDistance
+						end
+					end
+
+					if qualifies then
+						closestDistance = distanceToCompare
+						closestPlayer = player
 					end
 				end
 			end
@@ -281,6 +327,8 @@ end
 -- ESP
 --==================================================
 
+local ClearESPVisuals, MakeESPVisuals
+
 local function RemoveESP(player)
 
 	local data =
@@ -298,6 +346,7 @@ local function RemoveESP(player)
 		data.Billboard:Destroy()
 	end
 
+	ClearESPVisuals(player)
 	ESPObjects[player] = nil
 end
 
@@ -354,25 +403,7 @@ local function CreateESP(player)
 	-- TEAM COLOR
 	--==================================================
 
-	if IsSameTeam(player) then
-
-		highlight.OutlineColor =
-			Color3.fromRGB(
-				70,
-				160,
-				255
-			)
-
-	else
-
-		highlight.OutlineColor =
-			Color3.fromRGB(
-				255,
-				70,
-				70
-			)
-
-	end
+	highlight.OutlineColor = GetESPColor(player)
 
 	highlight.Enabled =
 		Settings.ESP.ShowOutline
@@ -439,27 +470,13 @@ local function CreateESP(player)
 	nameLabel.Parent =
 		billboard
 
-	if IsSameTeam(player) then
+	nameLabel.TextColor3 = GetESPColor(player)
 
-		nameLabel.TextColor3 =
-			Color3.fromRGB(
-				70,
-				160,
-				255
-			)
-
-	else
-
-		nameLabel.TextColor3 =
-			Color3.fromRGB(
-				255,
-				70,
-				70
-			)
-
-	end
+	local visuals = MakeESPVisuals(player)
 
 	ESPObjects[player] = {
+
+		Visuals = visuals,
 
 		Highlight = highlight,
 
@@ -570,39 +587,9 @@ local function UpdateESP(player)
 	-- COLORS
 	--==================================================
 
-	if IsSameTeam(player) then
-
-		data.Highlight.OutlineColor =
-			Color3.fromRGB(
-				70,
-				160,
-				255
-			)
-
-		data.Name.TextColor3 =
-			Color3.fromRGB(
-				70,
-				160,
-				255
-			)
-
-	else
-
-		data.Highlight.OutlineColor =
-			Color3.fromRGB(
-				255,
-				70,
-				70
-			)
-
-		data.Name.TextColor3 =
-			Color3.fromRGB(
-				255,
-				70,
-				70
-			)
-
-	end
+	local espColor = GetESPColor(player)
+	data.Highlight.OutlineColor = espColor
+	data.Name.TextColor3 = espColor
 end
 
 --==================================================
@@ -672,6 +659,55 @@ ScreenGui.IgnoreGuiInset =
 ScreenGui.Parent =
 	PlayerGui
 
+-- Overlay layer used for ESP tracers and 2D boxes.
+local ESPOverlay = Instance.new("Frame")
+ESPOverlay.Name = "ESPOverlay"
+ESPOverlay.BackgroundTransparency = 1
+ESPOverlay.Size = UDim2.fromScale(1, 1)
+ESPOverlay.Position = UDim2.fromScale(0, 0)
+ESPOverlay.Parent = ScreenGui
+
+local ESPVisuals = {}
+
+ClearESPVisuals = function(player)
+	local visual = ESPVisuals[player]
+	if visual then
+		for _, object in ipairs(visual) do
+			object:Destroy()
+		end
+		ESPVisuals[player] = nil
+	end
+end
+
+local function MakeLine(parent, color, thickness)
+	local line = Instance.new("Frame")
+	line.BorderSizePixel = 0
+	line.BackgroundColor3 = color
+	line.AnchorPoint = Vector2.new(0.5, 0.5)
+	line.Size = UDim2.fromOffset(1, thickness)
+	line.Visible = false
+	line.Parent = parent
+	return line
+end
+
+MakeESPVisuals = function(player)
+	ClearESPVisuals(player)
+	local objects = {}
+
+	local tracer = MakeLine(ESPOverlay, Color3.fromRGB(255, 70, 70), 2)
+	table.insert(objects, tracer)
+
+	local boxLines = {}
+	for i = 1, 4 do
+		local line = MakeLine(ESPOverlay, Color3.fromRGB(255, 70, 70), 2)
+		table.insert(boxLines, line)
+		table.insert(objects, line)
+	end
+
+	ESPVisuals[player] = objects
+	return {Tracer = tracer, BoxLines = boxLines}
+end
+
 --==================================================
 -- MAIN WINDOW
 --==================================================
@@ -685,7 +721,7 @@ Main.Name =
 Main.Size =
 	UDim2.fromOffset(
 		480,
-		370
+		500
 	)
 
 Main.Position =
@@ -693,7 +729,7 @@ Main.Position =
 		0.5,
 		-240,
 		0.5,
-		-185
+		-250
 	)
 
 Main.BackgroundColor3 =
@@ -803,6 +839,18 @@ Title.TextXAlignment =
 
 Title.Parent =
 	TitleBar
+
+local Byline = Instance.new("TextLabel")
+Byline.Name = "Byline"
+Byline.BackgroundTransparency = 1
+Byline.Position = UDim2.fromOffset(150, 0)
+Byline.Size = UDim2.fromOffset(150, 45)
+Byline.Font = Enum.Font.Gotham
+Byline.Text = "by umcarafoda"
+Byline.TextColor3 = Color3.fromRGB(145, 145, 160)
+Byline.TextSize = 11
+Byline.TextXAlignment = Enum.TextXAlignment.Left
+Byline.Parent = TitleBar
 
 local Status =
 	Instance.new("TextLabel")
@@ -985,7 +1033,7 @@ local Sidebar =
 Sidebar.Size =
 	UDim2.fromOffset(
 		125,
-		325
+		455
 	)
 
 Sidebar.BackgroundColor3 =
@@ -1688,6 +1736,39 @@ CreateToggle(
 	93
 )
 
+CreateToggle(
+	AimPage,
+	"Closest to You",
+	Settings.Aimbot.ClosestToYou,
+	function(value)
+		Settings.Aimbot.ClosestToYou = value
+	end,
+	136
+)
+
+CreateToggle(
+	AimPage,
+	"Wall Check",
+	Settings.Aimbot.WallCheck,
+	function(value)
+		Settings.Aimbot.WallCheck = value
+	end,
+	179
+)
+
+CreateToggle(
+	AimPage,
+	"Silent Aim",
+	Settings.Aimbot.SilentAim,
+	function(value)
+		Settings.Aimbot.SilentAim = value
+		if not value then
+			LocalPlayer:SetAttribute("SilentAimTargetUserId", nil)
+		end
+	end,
+	222
+)
+
 CreateSelector(
 	AimPage,
 	"Target",
@@ -1702,7 +1783,7 @@ CreateSelector(
 			value
 
 	end,
-	136
+	265
 )
 
 CreateSelector(
@@ -1722,7 +1803,7 @@ CreateSelector(
 			tonumber(value)
 
 	end,
-	179
+	308
 )
 
 --==================================================
@@ -1846,6 +1927,26 @@ CreateToggle(
 
 CreateToggle(
 	ESPPage,
+	"Tracer",
+	Settings.ESP.ShowTracer,
+	function(value)
+		Settings.ESP.ShowTracer = value
+	end,
+	179
+)
+
+CreateToggle(
+	ESPPage,
+	"Box",
+	Settings.ESP.ShowBox,
+	function(value)
+		Settings.ESP.ShowBox = value
+	end,
+	222
+)
+
+CreateToggle(
+	ESPPage,
 	"Team Check",
 	Settings.ESP.TeamCheck,
 	function(value)
@@ -1856,8 +1957,98 @@ CreateToggle(
 		UpdateAllESP()
 
 	end,
-	179
+	265
 )
+
+--==================================================
+-- ESP COLOR PERSONALIZER (HEX)
+--==================================================
+
+local ColorHeader = Instance.new("TextLabel")
+ColorHeader.BackgroundTransparency = 1
+ColorHeader.Position = UDim2.fromOffset(20, 307)
+ColorHeader.Size = UDim2.new(1, -40, 0, 24)
+ColorHeader.Font = Enum.Font.GothamBold
+ColorHeader.Text = "ESP COLORS  •  HEX"
+ColorHeader.TextColor3 = Color3.fromRGB(235, 235, 245)
+ColorHeader.TextSize = 12
+ColorHeader.TextXAlignment = Enum.TextXAlignment.Left
+ColorHeader.Parent = ESPPage
+
+local function ColorToHex(color)
+	return string.format("#%02X%02X%02X", math.floor(color.R * 255 + 0.5), math.floor(color.G * 255 + 0.5), math.floor(color.B * 255 + 0.5))
+end
+
+local function MakeColorInput(labelText, y, initialColor, applyCallback)
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.Position = UDim2.fromOffset(20, y)
+	label.Size = UDim2.fromOffset(92, 30)
+	label.Font = Enum.Font.GothamMedium
+	label.Text = labelText
+	label.TextColor3 = Color3.fromRGB(195, 195, 205)
+	label.TextSize = 11
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Parent = ESPPage
+
+	local input = Instance.new("TextBox")
+	input.Position = UDim2.fromOffset(110, y + 1)
+	input.Size = UDim2.fromOffset(100, 28)
+	input.BackgroundColor3 = Color3.fromRGB(31, 31, 38)
+	input.BorderSizePixel = 0
+	input.Font = Enum.Font.Code
+	input.Text = ColorToHex(initialColor)
+	input.PlaceholderText = "#RRGGBB"
+	input.TextColor3 = initialColor
+	input.TextSize = 12
+	input.ClearTextOnFocus = false
+	input.Parent = ESPPage
+	local inputCorner = Instance.new("UICorner")
+	inputCorner.CornerRadius = UDim.new(0, 5)
+	inputCorner.Parent = input
+
+	local apply = Instance.new("TextButton")
+	apply.Position = UDim2.fromOffset(218, y + 1)
+	apply.Size = UDim2.fromOffset(62, 28)
+	apply.BackgroundColor3 = Color3.fromRGB(55, 55, 68)
+	apply.BorderSizePixel = 0
+	apply.Font = Enum.Font.GothamMedium
+	apply.Text = "Apply"
+	apply.TextColor3 = Color3.fromRGB(240, 240, 245)
+	apply.TextSize = 11
+	apply.Parent = ESPPage
+	local applyCorner = Instance.new("UICorner")
+	applyCorner.CornerRadius = UDim.new(0, 5)
+	applyCorner.Parent = apply
+
+	local function applyColor()
+		local hex = input.Text:gsub("#", "")
+		if #hex ~= 6 or not hex:match("^%x%x%x%x%x%x$") then
+			input.TextColor3 = Color3.fromRGB(255, 100, 100)
+			return
+		end
+		local r = tonumber(hex:sub(1, 2), 16)
+		local g = tonumber(hex:sub(3, 4), 16)
+		local b = tonumber(hex:sub(5, 6), 16)
+		local color = Color3.fromRGB(r, g, b)
+		input.Text = ColorToHex(color)
+		input.TextColor3 = color
+		applyCallback(color)
+		UpdateAllESP()
+	end
+
+	apply.MouseButton1Click:Connect(applyColor)
+	input.FocusLost:Connect(function(enterPressed)
+		if enterPressed then applyColor() end
+	end)
+end
+
+MakeColorInput("Teammates", 337, Settings.ESP.TeammateColor, function(color)
+	Settings.ESP.TeammateColor = color
+end)
+MakeColorInput("Enemies", 374, Settings.ESP.EnemyColor, function(color)
+	Settings.ESP.EnemyColor = color
+end)
 
 --==================================================
 -- SETTINGS PAGE
@@ -2009,7 +2200,7 @@ Minimize.MouseButton1Click:Connect(function()
 		Main.Size =
 			UDim2.fromOffset(
 				480,
-				370
+				500
 			)
 
 	end
@@ -2176,6 +2367,86 @@ Players.PlayerRemoving:Connect(
 )
 
 --==================================================
+-- UPDATE 2D ESP VISUALS
+--==================================================
+
+local function UpdateESPVisuals()
+	local camera = workspace.CurrentCamera
+	if not camera then
+		return
+	end
+
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player ~= LocalPlayer then
+			local data = ESPObjects[player]
+			local character = player.Character
+			local root = character and character:FindFirstChild("HumanoidRootPart")
+			local head = character and character:FindFirstChild("Head")
+
+			if data and data.Visuals and root and head and IsAlive(character)
+				and Settings.ESP.Enabled then
+				local visuals = data.Visuals
+				local rootPos, rootVisible = camera:WorldToViewportPoint(root.Position)
+				local headPos, headVisible = camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
+				local feetPos, feetVisible = camera:WorldToViewportPoint(root.Position - Vector3.new(0, 3, 0))
+				local visible = rootVisible and headVisible and feetVisible
+					and rootPos.Z > 0 and headPos.Z > 0 and feetPos.Z > 0
+
+				local color = GetESPColor(player)
+
+				local tracer = visuals.Tracer
+				tracer.Visible = visible and Settings.ESP.ShowTracer
+				if tracer.Visible then
+					local startPos = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y)
+					local endPos = Vector2.new(rootPos.X, rootPos.Y)
+					local delta = endPos - startPos
+					tracer.Position = UDim2.fromOffset((startPos.X + endPos.X) / 2, (startPos.Y + endPos.Y) / 2)
+					tracer.Size = UDim2.fromOffset(delta.Magnitude, 2)
+					tracer.Rotation = math.deg(math.atan2(delta.Y, delta.X))
+					tracer.BackgroundColor3 = color
+				end
+
+				local boxLines = visuals.BoxLines
+				for _, line in ipairs(boxLines) do
+					line.Visible = false
+				end
+
+				if visible and Settings.ESP.ShowBox then
+					local height = math.abs(feetPos.Y - headPos.Y)
+					local width = height * 0.55
+					local left = rootPos.X - width / 2
+					local right = rootPos.X + width / 2
+					local top = headPos.Y
+					local bottom = feetPos.Y
+					local segments = {
+						{Vector2.new(left, top), Vector2.new(right, top)},
+						{Vector2.new(right, top), Vector2.new(right, bottom)},
+						{Vector2.new(right, bottom), Vector2.new(left, bottom)},
+						{Vector2.new(left, bottom), Vector2.new(left, top)},
+					}
+
+					for i, segment in ipairs(segments) do
+						local line = boxLines[i]
+						local a, b = segment[1], segment[2]
+						local delta = b - a
+						line.Position = UDim2.fromOffset((a.X + b.X) / 2, (a.Y + b.Y) / 2)
+						line.Size = UDim2.fromOffset(delta.Magnitude, 2)
+						line.Rotation = math.deg(math.atan2(delta.Y, delta.X))
+						line.BackgroundColor3 = color
+						line.Visible = true
+					end
+				end
+			elseif data and data.Visuals then
+				data.Visuals.Tracer.Visible = false
+				for _, line in ipairs(data.Visuals.BoxLines) do
+					line.Visible = false
+				end
+			end
+		end
+	end
+end
+
+--==================================================
 -- MAIN LOOP
 --==================================================
 
@@ -2197,7 +2468,13 @@ RunService.RenderStepped:Connect(
 
 			if target then
 
-				AimAt(target)
+				if Settings.Aimbot.SilentAim then
+					-- Your own weapon/shooting code can read this attribute.
+					LocalPlayer:SetAttribute("SilentAimTargetUserId", target.UserId)
+				else
+					LocalPlayer:SetAttribute("SilentAimTargetUserId", nil)
+					AimAt(target)
+				end
 
 				Status.Text =
 					"AIMING"
@@ -2211,6 +2488,7 @@ RunService.RenderStepped:Connect(
 
 			else
 
+				LocalPlayer:SetAttribute("SilentAimTargetUserId", nil)
 				Status.Text =
 					"NO TARGET"
 
@@ -2224,6 +2502,7 @@ RunService.RenderStepped:Connect(
 
 		elseif not Settings.Aimbot.Enabled then
 
+			LocalPlayer:SetAttribute("SilentAimTargetUserId", nil)
 			Status.Text =
 				"READY"
 
@@ -2234,6 +2513,8 @@ RunService.RenderStepped:Connect(
 					140
 				)
 		end
+
+		UpdateESPVisuals()
 
 		--==================================================
 		-- ESP
@@ -2270,4 +2551,3 @@ Status.TextColor3 =
 		255,
 		140
 	)
-
