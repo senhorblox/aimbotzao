@@ -552,20 +552,22 @@ local function UpdateESP(player)
 		return
 	end
 
-	local data =
-		ESPObjects[player]
+	local data = ESPObjects[player]
 
-	-- Create if missing
-	if not data then
-
-		CreateESP(player)
-
-		data =
-			ESPObjects[player]
-
+	-- Rebuild all ESP instances whenever the player's character changes.
+	-- This also recreates the 2D box/tracer objects after a respawn.
+	if data and data.Highlight and data.Highlight.Adornee ~= character then
+		RemoveESP(player)
+		data = nil
 	end
 
+	-- Create if missing (including after a character respawn).
 	if not data then
+		CreateESP(player)
+		data = ESPObjects[player]
+	end
+
+	if not data or not data.Highlight or not data.Billboard then
 		return
 	end
 
@@ -2380,29 +2382,37 @@ local function SetupPlayer(player)
 				return
 			end
 
-			-- Small delay prevents ESP being
-			-- created before the character
-			-- is completely replicated.
-			task.wait(0.15)
+			-- Wait briefly for character parts and appearance to replicate.
+			task.wait(0.25)
 
-			if Settings.ESP.Enabled then
+			-- Ignore delayed callbacks for an old character if the player
+			-- respawned again while this callback was waiting.
+			if player.Character ~= character or not character.Parent then
+				return
+			end
 
+			if Settings.ESP.Enabled and IsAlive(character) then
 				UpdateESP(player)
-
 			end
 		end
 	)
+
+	-- Clear the old character's ESP immediately when a respawn begins.
+	player.CharacterRemoving:Connect(function(character)
+		local data = ESPObjects[player]
+		if data and data.Highlight and data.Highlight.Adornee == character then
+			RemoveESP(player)
+		end
+	end)
 
 	-- Handle players who were already spawned
 	if player.Character then
 
 		task.defer(
 			function()
-
-				if Settings.ESP.Enabled then
-
+				local character = player.Character
+				if character and character.Parent and Settings.ESP.Enabled then
 					UpdateESP(player)
-
 				end
 			end
 		)
