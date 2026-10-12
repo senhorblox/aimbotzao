@@ -53,20 +53,29 @@ end
 local CurrentLanguage = DetectLanguage()
 
 local Translations = {
-	["Aimbot"] = { pt = "Aimbot" },
-	["Head"] = { pt = "Cabeça" },
-	["Torso"] = { pt = "Tronco" },
-	["ESP"] = { pt = "ESP" },
-	["Settings"] = { pt = "Configurações" },
+	["Aimbot"] = { pt = "Mira automática" },
+	["AIM  •  ESP"] = { pt = "MIRA  •  ESP" },
+	["Keybinds"] = { pt = "Teclas de atalho" },
+	["Aim Key"] = { pt = "Tecla de mira" },
+	["UI Toggle"] = { pt = "Alternar interface" },
+	["Click a keybind and press a key."] = { pt = "Clique em uma tecla e pressione a tecla desejada." },
+	["The UI Toggle key completely hides the menu."] = { pt = "A tecla da interface oculta o menu completamente." },
+	["Press the same key again to bring it back."] = { pt = "Pressione a mesma tecla novamente para reabri-lo." },
+	["Idioma atual: Português"] = { pt = "Idioma atual: Português" },
+	["Current language: English"] = { pt = "Idioma atual: Português" },
+	["Language: English  |  Mudar para Português"] = { pt = "Idioma: Português  |  Switch to English" },
+	["Idioma: Português  |  Switch to English"] = { pt = "Idioma: Português  |  Switch to English" },
+	["Apply"] = { pt = "Aplicar" },
+	["ESP COLORS  •  HEX"] = { pt = "CORES DO ESP  •  HEX" },
+	["Teammates"] = { pt = "Aliados" },
+	["Enemies"] = { pt = "Inimigos" },
+	["PRESS KEY"] = { pt = "PRESSIONE UMA TECLA" },
 	["READY"] = { pt = "PRONTO" },
 	["AIMING"] = { pt = "MIRANDO" },
 	["NO TARGET"] = { pt = "SEM ALVO" },
 	["ON"] = { pt = "LIGADO" },
 	["OFF"] = { pt = "DESLIGADO" },
-	["Team Check"] = { pt = "Verificar equipe" },
-	["Closest to You"] = { pt = "Mais próximo de você" },
-	["Wall Check"] = { pt = "Verificar paredes" },
-	["Silent Aim"] = { pt = "Mira silenciosa" },
+	["Head"] = { pt = "Cabeça" },
 	["Target"] = { pt = "Alvo" },
 	["FOV"] = { pt = "Campo de visão" },
 	["See FOV"] = { pt = "Mostrar FOV" },
@@ -75,17 +84,14 @@ local Translations = {
 	["Health Numbers"] = { pt = "Números de vida" },
 	["Tracer"] = { pt = "Rastreador" },
 	["Box"] = { pt = "Caixa" },
-	["ESP COLORS  •  HEX"] = { pt = "CORES DO ESP  •  HEX" },
-	["Teammates"] = { pt = "Aliados" },
-	["Enemies"] = { pt = "Inimigos" },
-	["Apply"] = { pt = "Aplicar" },
-	["Keybinds"] = { pt = "Teclas de atalho" },
-	["Aim Key"] = { pt = "Tecla de mira" },
-	["UI Toggle"] = { pt = "Mostrar/ocultar interface" },
-	["Click a keybind and press a key."] = { pt = "Clique em uma tecla de atalho e pressione outra tecla." },
-	["The UI Toggle key completely hides the menu."] = { pt = "A tecla da interface oculta o menu completamente." },
-	["Press the same key again to bring it back."] = { pt = "Pressione a mesma tecla novamente para mostrá-lo." },
-	["PRESS KEY"] = { pt = "PRESSIONE UMA TECLA" },
+	["Team Check"] = { pt = "Verificar equipe" },
+	["Closest to You"] = { pt = "Mais próximo de você" },
+	["Wall Check"] = { pt = "Verificar paredes" },
+	["Silent Aim"] = { pt = "Mira silenciosa" },
+	["Settings"] = { pt = "Configurações" },
+	["ESP"] = { pt = "ESP" },
+	["Torso"] = { pt = "Tronco" },
+
 }
 
 local function T(text)
@@ -863,15 +869,18 @@ MainCorner.Parent =
 local MainStroke =
 	Instance.new("UIStroke")
 
-MainStroke.Color =
-	Color3.fromRGB(
-		55,
-		55,
-		65
-	)
+MainStroke.Color = Color3.fromRGB(92, 100, 180)
+MainStroke.Thickness = 1.5
+MainStroke.Transparency = 0.08
+MainStroke.Parent = Main
 
-MainStroke.Parent =
-	Main
+local MainGradient = Instance.new("UIGradient")
+MainGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(24, 26, 39)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(15, 16, 23)),
+})
+MainGradient.Rotation = 35
+MainGradient.Parent = Main
 
 --==================================================
 -- TITLE BAR
@@ -888,18 +897,29 @@ TitleBar.Size =
 		45
 	)
 
-TitleBar.BackgroundColor3 =
-	Color3.fromRGB(
-		28,
-		28,
-		35
-	)
+TitleBar.BackgroundColor3 = Color3.fromRGB(35, 38, 59)
 
 TitleBar.BorderSizePixel =
 	0
 
-TitleBar.Parent =
-	Main
+TitleBar.Parent = Main
+
+local TitleGradient = Instance.new("UIGradient")
+TitleGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(65, 78, 140)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(39, 45, 78)),
+})
+TitleGradient.Rotation = 0
+TitleGradient.Parent = TitleBar
+
+local TitleSeparator = Instance.new("Frame")
+TitleSeparator.Name = "TitleSeparator"
+TitleSeparator.BorderSizePixel = 0
+TitleSeparator.BackgroundColor3 = Color3.fromRGB(105, 120, 205)
+TitleSeparator.BackgroundTransparency = 0.35
+TitleSeparator.Position = UDim2.new(0, 0, 1, -1)
+TitleSeparator.Size = UDim2.new(1, 0, 0, 1)
+TitleSeparator.Parent = TitleBar
 
 local Title =
 	Instance.new("TextLabel")
@@ -913,13 +933,7 @@ Title.Position =
 		0
 	)
 
-Title.Size =
-	UDim2.new(
-		1,
-		-150,
-		1,
-		0
-	)
+Title.Size = UDim2.fromOffset(132, 45)
 
 Title.Font =
 	Enum.Font.GothamBold
@@ -946,7 +960,7 @@ Title.Parent =
 local Byline = Instance.new("TextLabel")
 Byline.Name = "Byline"
 Byline.BackgroundTransparency = 1
-Byline.Position = UDim2.fromOffset(150, 0)
+Byline.Position = UDim2.fromOffset(145, 0)
 Byline.Size = UDim2.fromOffset(150, 45)
 Byline.Font = Enum.Font.Gotham
 Byline.Text = "by umcarafoda"
@@ -1140,17 +1154,18 @@ Sidebar.Size =
 	)
 
 Sidebar.BackgroundColor3 =
-	Color3.fromRGB(
-		24,
-		24,
-		30
-	)
+	Color3.fromRGB(21, 23, 34)
 
 Sidebar.BorderSizePixel =
 	0
 
-Sidebar.Parent =
-	Content
+Sidebar.Parent = Content
+
+local SidebarStroke = Instance.new("UIStroke")
+SidebarStroke.Color = Color3.fromRGB(57, 65, 105)
+SidebarStroke.Transparency = 0.65
+SidebarStroke.Thickness = 1
+SidebarStroke.Parent = Sidebar
 
 local SidebarLayout =
 	Instance.new("UIListLayout")
@@ -1288,14 +1303,15 @@ local function CreateTab(text, page)
 	local corner =
 		Instance.new("UICorner")
 
-	corner.CornerRadius =
-		UDim.new(
-			0,
-			6
-		)
+	corner.CornerRadius = UDim.new(0, 9)
 
-	corner.Parent =
-		button
+	corner.Parent = button
+
+	local tabStroke = Instance.new("UIStroke")
+	tabStroke.Color = Color3.fromRGB(72, 80, 125)
+	tabStroke.Transparency = 0.62
+	tabStroke.Thickness = 1
+	tabStroke.Parent = button
 
 	button.MouseButton1Click:Connect(function()
 
@@ -1394,11 +1410,7 @@ local function CreateToggle(
 		)
 
 	button.BackgroundColor3 =
-		Color3.fromRGB(
-			31,
-			31,
-			38
-		)
+		Color3.fromRGB(34, 36, 51)
 
 	button.BorderSizePixel =
 		0
@@ -1418,14 +1430,15 @@ local function CreateToggle(
 	local corner =
 		Instance.new("UICorner")
 
-	corner.CornerRadius =
-		UDim.new(
-			0,
-			6
-		)
+	corner.CornerRadius = UDim.new(0, 9)
 
-	corner.Parent =
-		button
+	corner.Parent = button
+
+	local controlStroke = Instance.new("UIStroke")
+	controlStroke.Color = Color3.fromRGB(76, 84, 130)
+	controlStroke.Transparency = 0.72
+	controlStroke.Thickness = 1
+	controlStroke.Parent = button
 
 	local value =
 		default
@@ -1502,11 +1515,7 @@ local function CreateSelector(
 		)
 
 	button.BackgroundColor3 =
-		Color3.fromRGB(
-			31,
-			31,
-			38
-		)
+		Color3.fromRGB(34, 36, 51)
 
 	button.BorderSizePixel =
 		0
@@ -1533,14 +1542,15 @@ local function CreateSelector(
 	local corner =
 		Instance.new("UICorner")
 
-	corner.CornerRadius =
-		UDim.new(
-			0,
-			6
-		)
+	corner.CornerRadius = UDim.new(0, 9)
 
-	corner.Parent =
-		button
+	corner.Parent = button
+
+	local controlStroke = Instance.new("UIStroke")
+	controlStroke.Color = Color3.fromRGB(76, 84, 130)
+	controlStroke.Transparency = 0.72
+	controlStroke.Thickness = 1
+	controlStroke.Parent = button
 
 	local index =
 		defaultIndex
@@ -1616,11 +1626,7 @@ local function CreateKeybind(
 		)
 
 	button.BackgroundColor3 =
-		Color3.fromRGB(
-			31,
-			31,
-			38
-		)
+		Color3.fromRGB(34, 36, 51)
 
 	button.BorderSizePixel =
 		0
@@ -1647,14 +1653,15 @@ local function CreateKeybind(
 	local corner =
 		Instance.new("UICorner")
 
-	corner.CornerRadius =
-		UDim.new(
-			0,
-			6
-		)
+	corner.CornerRadius = UDim.new(0, 9)
 
-	corner.Parent =
-		button
+	corner.Parent = button
+
+	local controlStroke = Instance.new("UIStroke")
+	controlStroke.Color = Color3.fromRGB(76, 84, 130)
+	controlStroke.Transparency = 0.72
+	controlStroke.Thickness = 1
+	controlStroke.Parent = button
 
 	local currentKey =
 		defaultKey
@@ -2249,12 +2256,16 @@ LanguageButton.Parent = SettingsPage
 Instance.new("UICorner", LanguageButton).CornerRadius = UDim.new(0, 6)
 
 local function UpdateLanguageButton()
-    LanguageButton.Text = CurrentLanguage == "pt" and "Idioma: Português  |  Switch to English" or "Language: English  |  Mudar para Português"
-    LanguageInfo.Text = CurrentLanguage == "pt" and "Idioma atual: Português" or "Current language: English"
+    LanguageButton.Text = CurrentLanguage == "pt"
+        and "Idioma: Português  |  Switch to English"
+        or "Language: English  |  Mudar para Português"
+    LanguageInfo.Text = CurrentLanguage == "pt"
+        and "Idioma atual: Português"
+        or "Current language: English"
 end
 
 local function RefreshLanguage()
-    -- Translate current UI text back to its English key, then apply the selected language.
+    -- Convert known Portuguese fragments back to their English keys, then re-translate.
     local reverse = {}
     for english, entry in pairs(Translations) do
         if entry.pt and entry.pt ~= english then
@@ -2263,19 +2274,44 @@ local function RefreshLanguage()
     end
     table.sort(reverse, function(a, b) return #a.pt > #b.pt end)
 
+    local englishKeys = {}
+    for english, entry in pairs(Translations) do
+        if entry.pt and entry.pt ~= english then
+            table.insert(englishKeys, {en = english, pt = entry.pt})
+        end
+    end
+    table.sort(englishKeys, function(a, b) return #a.en > #b.en end)
+
+    local function ReplacePlain(value, needle, replacement)
+        local startAt = 1
+        while true do
+            local first, last = string.find(value, needle, startAt, true)
+            if not first then break end
+            value = string.sub(value, 1, first - 1) .. replacement .. string.sub(value, last + 1)
+            startAt = first + #replacement
+        end
+        return value
+    end
+
     for _, object in ipairs(ScreenGui:GetDescendants()) do
         if object:IsA("TextLabel") or object:IsA("TextButton") or object:IsA("TextBox") then
-            local value = object.Text
-            for _, pair in ipairs(reverse) do
-                local startAt = 1
-                while true do
-                    local first, last = string.find(value, pair.pt, startAt, true)
-                    if not first then break end
-                    value = string.sub(value, 1, first - 1) .. pair.en .. string.sub(value, last + 1)
-                    startAt = first + #pair.en
+            if object ~= LanguageButton and object ~= LanguageInfo then
+                local value = object.Text
+                -- Normalize translated text back to its English keys first.
+                for _, pair in ipairs(reverse) do
+                    value = ReplacePlain(value, pair.pt, pair.en)
                 end
+                -- Then translate every English fragment, including combined toggle/keybind labels.
+                if CurrentLanguage == "pt" then
+                    for _, pair in ipairs(englishKeys) do
+                        value = ReplacePlain(value, pair.en, pair.pt)
+                    end
+                end
+                object.Text = value
             end
-            object.Text = T(value)
+            if object:IsA("TextBox") and object.PlaceholderText ~= "" then
+                object.PlaceholderText = CurrentLanguage == "pt" and object.PlaceholderText or object.PlaceholderText
+            end
         end
     end
     UpdateLanguageButton()
@@ -2325,7 +2361,7 @@ Info.BackgroundTransparency =
 Info.Position =
 	UDim2.fromOffset(
 		20,
-		145
+		205
 	)
 
 Info.Size =
