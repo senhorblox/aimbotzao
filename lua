@@ -1,4 +1,3 @@
-
 --[[
     AIMBOT + ESP
     LocalScript
